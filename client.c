@@ -1,44 +1,38 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <winsock2.h>
-
-#pragma comment(lib, "ws2_32.lib")
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 
 #define PORT 8888
 #define BUFFER_SIZE 1024
 #define SERVER_IP "127.0.0.1"
 
 int main() {
-    WSADATA wsaData;
-    SOCKET client_socket;
+    int client_socket;
     struct sockaddr_in server_addr;
     char buffer[BUFFER_SIZE];
 
-    // 初始化 Winsock
-    if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
-        printf("WSAStartup 失败\n");
-        return 1;
-    }
-
     // 创建套接字
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
-    if (client_socket == INVALID_SOCKET) {
+    if (client_socket < 0) {
         printf("套接字创建失败\n");
-        WSACleanup();
         return 1;
     }
 
     // 设置服务器地址结构
+    memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(PORT);
     server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
 
     // 连接到服务器
-    if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) == SOCKET_ERROR) {
+    if (connect(client_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
         printf("连接失败\n");
-        closesocket(client_socket);
-        WSACleanup();
+        close(client_socket);
         return 1;
     }
 
@@ -65,8 +59,7 @@ int main() {
     }
 
     // 清理
-    closesocket(client_socket);
-    WSACleanup();
+    close(client_socket);
 
     return 0;
 }
